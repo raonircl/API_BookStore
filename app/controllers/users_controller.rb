@@ -13,10 +13,10 @@ class UsersController < ApplicationController
     end
 
     @user = User.new(user_params)
-    @user.password = BCrypt::Password.create(params[:password])
+    @user.password = BCrypt::Password.create(user_params[:password])
 
     if @user.save
-      render_success('User created successfully!')
+      render_create('User created successfully!')
     else
       render_errors(@user.errors.full_messages)
     end
@@ -39,13 +39,5 @@ class UsersController < ApplicationController
 
   def user_params
     params.permit(:name, :email, :password)
-  end
-
-  def render_success_token(message, token)
-    render json: { message: message, token: token }, status: :ok
-  end
-
-  def render_unauthorized(errors)
-    render json: { errors: errors }, status: :unauthorized
   end
 end
