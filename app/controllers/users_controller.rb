@@ -5,7 +5,7 @@ require_relative '../services/jwt_service'
 
 class UsersController < ApplicationController
   def create
-    user_params = params.require(:user).permit(:username, :email, :password)
+    user_params = params.require(:user).permit(:name, :email, :password)
 
     @user = User.new(user_params)
     @user.password = BCrypt::Password.create(params[:password])
@@ -33,7 +33,7 @@ class UsersController < ApplicationController
   private
 
   def user_params
-    params.permit(:username, :email, :password)
+    params.permit(:name, :email, :password)
   end
 
   def render_success_token(message, token)

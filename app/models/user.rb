@@ -1,5 +1,5 @@
 class User < ApplicationRecord
-  validates :username, presence: true, format: { with: /\A[a-zA-Z0-9_-]+\z/ }
+  validates :name, presence: true, format: { without: /\d/ }
   validates :email, presence: true, uniqueness: true, format: { with: URI::MailTo::EMAIL_REGEXP }
   validates :password, presence: true, length: { minimum: 8 }
 end
