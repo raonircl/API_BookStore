@@ -7,6 +7,11 @@ class UsersController < ApplicationController
   def create
     user_params = params.require(:user).permit(:name, :email, :password)
 
+    if user_params[:password].length < 8
+      render_errors('Password must be at least 8 characters long')
+      return
+    end
+
     @user = User.new(user_params)
     @user.password = BCrypt::Password.create(params[:password])
 
