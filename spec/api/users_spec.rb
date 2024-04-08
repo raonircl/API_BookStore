@@ -1,53 +1,44 @@
-
 require 'rails_helper'
 require_relative '../../app/controllers/users_controller'
 
-RSpec.describe "Testing the Users endpoint" do
-
+RSpec.describe "Users API Endpoint" do
   describe 'POST /signup' do
     context "with valid user data" do
-      it 'create new user' do
-        user_params = { name: 'John Down', email: 'john@exemple.com', password: 'password123' }
-        post '/signup', params: { user: user_params }
-
+      it 'creates a new user' do
+        expect { create_user }.to change(User, :count).by(1)
         expect(response).to have_http_status(:created)
-        expect(response.body).to include('User created successfully!')
-        expect(User.count).to eq(1)
+        expect(json_response['message']).to eq('User created successfully!')
       end
     end
 
     context 'with invalid parameters' do
-      it 'return empty errors' do
-        post '/signup', params: { user: { name: "", email: "", password: "" } }
-
+      it 'returns name, email empty errors' do
+        post_invalid_signup_request(name: "", email: "", password: "10203040")
         expect(response).to have_http_status(:unprocessable_entity)
-        expect(json_response['errors']).to include(
-          "name can't be blank",
-          "email can't be blank",
-          "password can't be blank"
-        )
+        expect(json_response['errors']).to include("Name can't be blank", "Email can't be blank", "Email is invalid")
       end
 
-      it 'returns format errors' do
-        post '/signup', params: { user: { name: "1231Ra", email: "People", password: "12345670" } }
-
+      it 'returns password empty error' do
+        post_invalid_signup_request(name: "Raoni teste", email: "teste@exemple.com", password: "")
         expect(response).to have_http_status(:unprocessable_entity)
-        expect(json_response['errors']).to include(
-          "name must contain only letters",
-          "email is invalid",
-        )
+        expect(json_response['errors']).to include("Password must be at least 8 characters long")
       end
 
-      it 'return invalid format password' do
-        post '/signup', params: { user: { name: "Raoni", email: "raoni@exemple.com", password: "12315" }}
-
+      it 'returns invalid format name, email' do
+        post_invalid_signup_request(name: "1231Ra", email: "People", password: "12345670")
         expect(response).to have_http_status(:unprocessable_entity)
-        expect(response.body).to include("must be at least 8 characters long")
+        expect(json_response['errors']).to include("Name is invalid", "Email is invalid")
       end
 
-      it 'existing email' do
-        post '/signup', params: { user: { name: "Raoni", email: "raoni@exemple.com", password: "1231500000" }}
+      it 'returns invalid format password' do
+        post_invalid_signup_request(name: "Raoni", email: "raoni@exemple.com", password: "12315")
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(json_response['errors']).to include("Password must be at least 8 characters long")
+      end
 
+      it 'returns existing email error' do
+        FactoryBot.create(:user, email: "raoni@exemple4.com")
+        post_invalid_signup_request(name: "Raoni", email: "raoni@exemple4.com", password: "1231500000")
         expect(response).to have_http_status(:unprocessable_entity)
         expect(json_response['errors']).to be_present
       end
@@ -56,9 +47,14 @@ RSpec.describe "Testing the Users endpoint" do
 
   describe 'POST /login' do
     context 'with valid credentials' do
-      it 'return a token' do
-        user = FactoryBot.create(:user, email: 'john@example.com', password: 'password123')
-        post '/login', params: { user: { email: 'john@example.com', password: 'password123' } }
+      it 'returns a token with valid credentials' do
+        email = 'raoni@example4.com'
+        password = '12322200'
+        user = User.create(email: email, password: password)
+
+        post '/login', params: { user: { email: email, password: password } }
+
+        puts response.body
 
         expect(response).to have_http_status(:success)
         expect(json_response['token']).to be_present
@@ -66,22 +62,37 @@ RSpec.describe "Testing the Users endpoint" do
     end
 
     context 'with invalid credentials' do
-      it 'return unauthorized' do
-        post '/login', params: { user: { email: 'invalid@example.com', password: 'invalid' } }
+      it 'returns unauthorized with invalid credentials' do
+        post '/login', params: { user: { email: 'invalid@example.com', password: 'invalid000' } }
 
         expect(response).to have_http_status(:unauthorized)
         expect(json_response['errors']).to eq('Invalid email or password')
       end
 
-      it 'return invalid empty' do
+      it 'returns unauthorized with empty credentials' do
         post '/login', params: { user: { email: '', password: '' } }
 
         expect(response).to have_http_status(:unauthorized)
         expect(json_response['errors']).to include(
-          "email can't be blank",
-          "password can't be blank"
+          "Invalid email or password"
         )
       end
     end
+  end
+
+  private
+
+  def create_user
+    user_params = FactoryBot.attributes_for(:user)
+    post '/signup', params: { user: user_params }
+    User.last
+  end
+
+  def post_invalid_signup_request(name:, email:, password:)
+    post '/signup', params: { user: { name: name, email: email, password: password } }
+  end
+
+  def post_login_request(email, password)
+    post '/login'
   end
 end
